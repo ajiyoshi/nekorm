@@ -362,7 +362,7 @@ class NekoTable {
 		return $ret;
 	}
 	public function first($cond){
-		$ret = $this->select($cond);
+		$ret = $this->search($cond);
 		if( count($ret) === 0 ){
 			return null;
 		}

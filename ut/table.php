@@ -91,7 +91,7 @@ function testInsertAndUpdate($t, $dbh){
 	}
 
 	//check
-	$other = $done_url->retrieve($obj->id);
+	$other = $done_url->first(array("user_id"=>1));
 	$t->is( $other->url, "http://yahoo.co.jp", "update" );
 	$t->is( $other->user_id, 1, "update" );
 	$t->isnt( $other->updated_on, $other->created_on );
