@@ -111,18 +111,13 @@ $t->is( false, $schema->isValidColumn("id\x00hoge"), "invalid columns(null byte)
 $t->is( false, $schema->isValidColumn("名前"), "invalid column");
 
 $t->is_deeply(
-	$schema->sFromUsField(array(
-		"name"=>"s-tanno",
-	   	"age"=>1000)),
-	array("name"=>"s-tanno", "age"=>1000),
-	"sFromUsField");
+	$schema->sFromUsColsList(array("name", "age")),
+	array("age", "name"),
+	"sFromUsColsList");
 $t->is_deeply(
-	$schema->sFromUsField(array(
-		"hoge"=>"fuga",
-	   	"name"=>"s-tanno",
-	   	"age"=>1000)),
-	array("name"=>"s-tanno", "age"=>1000),
-	"sFromUsField filter");
+	$schema->sFromUsColsList(array("name", "age", "hoge")),
+	array("age", "name"),
+	"sFromUsColsList filter");
 
 $t->is_deeply(
 	$schema->retrieveQuery(1),

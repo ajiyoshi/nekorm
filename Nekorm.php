@@ -1,5 +1,4 @@
 <?php
-
 /*XXX
  * このルールではテーブル名やカラム名として[_a-zA-Z0-9]のみ使用可能。
  * " select 社員名 from 社員マスタ where 社員ID = ? "
@@ -34,7 +33,7 @@ class StrictNameRule {
 /*
  * + (NekoSchema)getInstance(string $table, string $pk, array $columns)
  * - (bool)isValidColumn(string $usColumn)
- * - (array)sFromUsField(array $usField)
+ * - (array)sFromUsColsList(array $usColumnArray)
  * - (array)sColumns()
  * - (string)sTable()
  * - (string)sPkey()
@@ -126,15 +125,16 @@ class NekoSchema {
 		}
 		return $sCol;
 	}
-	public function sFromUsField($usField){
-		$sField = array();
-		foreach( $usField as $usCol => $val ){
-			$sKey = $this->sFromUsColumn($usCol);
-			if( $sKey !== null ){
-				$sField[$sKey] = $val;
+	public function sFromUsColsList($usArray){
+		$sRet = array();
+		foreach( $usArray as $usCol ){
+			$sCol = $this->sFromUsColumn($usCol);
+			if( $sCol !== null ){
+				$sRet[] = $sCol;
 			}
 		}
-		return $sField;
+		sort($sRet);
+		return $sRet;
 	}
 	public function sColumns(){
 		return $this->sColumns;
@@ -160,12 +160,10 @@ class NekoSchema {
 			"usData" => array($usId));
 	}
 	public function insertQuery($usField){
-		$sField = $this->sFromUsField($usField);
 		$sColLs = array();
 		$sPlace = array();
 		$usData = array();
-		$sKeys	= array_keys($sField);
-		sort($sKeys);
+		$sKeys	= $this->sFromUsColsList(array_keys($usField));
 		foreach( $sKeys as $sKey ){
 			$sColLs[] = $sKey;
 			$sPlace[] = "?";
@@ -183,10 +181,7 @@ class NekoSchema {
 	public function updateQuery($usId, $usField){
 		$sSetLs	= array();
 		$usData	= array();
-
-		$sField	= $this->sFromUsField($usField);
-		$sKeys = array_keys($sField);
-		sort($sKeys);
+		$sKeys = $this->sFromUsColsList(array_keys($usField));
 		foreach( $sKeys as $sKey ){
 			$sSetLs[] = "SET $sKey = ?";
 			$usData[] = $usField[$sKey];
@@ -202,13 +197,9 @@ class NekoSchema {
 		);
 	}
 	public function selectQuery($usCond){
-		$sCond = $this->sFromUsField($usCond);
-
-		$sKeys = array_keys($sCond);
-		sort($sKeys);
-
 		$sColLs = array();
 		$usData = array();
+		$sKeys = $this->sFromUsColsList(array_keys($usCond));
 		foreach( $sKeys as $sKey ){
 			$sColLs[] = "$sKey = ?";
 			$usData[] = $usCond[$sKey];
