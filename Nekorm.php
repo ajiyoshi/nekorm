@@ -82,6 +82,8 @@ class NekoSchema {
 	protected $sPkey;
 	protected $sColumns;
 	protected $sColumnHash;
+	protected $onInsertTimestampColmn;
+	protected $onUpdateTimestampColmn;
 	public static function getInstance($usTable, $usPkey, $usColumns){
 		/*
 		 * ORマッパーを作ろうとするとやむを得ないと思うのだが、
@@ -106,6 +108,8 @@ class NekoSchema {
 		$this->sPkey	= $sPkey;
 		$this->sColumns	= $sColumns;
 		$this->sColumnHash = array();
+		$this->onInsertTimestampColmn = array();
+		$this->onUpdateTimestampColmn = array();
 		foreach( $this->sColumns as $sCol ){
 			$this->sColumnHash[$sCol] = 1;
 		}
@@ -145,6 +149,18 @@ class NekoSchema {
 	public function sPkey(){
 		return $this->sPkey;
 	}
+	public function addOnInsertTimestamp($usCol){
+		$sCol = $this->sFromUsColumn($usCol);
+		if( $sCol ){
+			$this->onInsertTimestampColmn[$sCol] = 1;
+		}
+	}
+	public function addOnUpdateTimestamp($usCol){
+		$sCol = $this->sFromUsColumn($usCol);
+		if( $sCol ){
+			$this->onUpdateTimestampColmn[$sCol] = 1;
+		}
+	}
 	public function retrieveQuery($usId){
 		$sPkey	= $this->sPkey();
 		$sTable	= $this->sTable();
@@ -169,6 +185,10 @@ class NekoSchema {
 			$sPlace[] = "?";
 			$usData[] = $usField[$sKey];
 		}
+		foreach( array_diff(array_keys($this->onInsertTimestampColmn), $sKeys) as $sTs ){
+			$sColLs[] = $sTs;
+			$sPlace[] = "CURRENT_TIMESTAMP";
+		}
 		$sColStmt= implode(", ", $sColLs);
 		$sPlaces = implode(", ", $sPlace);
 
@@ -183,8 +203,11 @@ class NekoSchema {
 		$usData	= array();
 		$sKeys = $this->sFromUsColsList(array_keys($usField));
 		foreach( $sKeys as $sKey ){
-			$sSetLs[] = "SET $sKey = ?";
+			$sSetLs[] = "$sKey = ?";
 			$usData[] = $usField[$sKey];
+		}
+		foreach( array_diff(array_keys($this->onUpdateTimestampColmn), $sKeys) as $sTs ){
+			$sSetLs[] = "$sTs = CURRENT_TIMESTAMP";
 		}
 		$usData[] = $usId;
 		$sSetStmt = implode(", ", $sSetLs);
@@ -192,7 +215,7 @@ class NekoSchema {
 		$sPkey	= $this->sPkey();
 		$sTable	= $this->sTable();
 		return array(
-			"sQuery" => "UPDATE $sTable $sSetStmt WHERE $sPkey = ?",
+			"sQuery" => "UPDATE $sTable SET $sSetStmt WHERE $sPkey = ?",
 			"usData" => $usData
 		);
 	}
@@ -223,7 +246,7 @@ class NekoSchema {
 	public static function execute($dbh, $query){
 		$sth = $dbh->prepare($query["sQuery"]);
 		if( $sth->execute($query["usData"]) === false ){
-			return false;
+			return null;
 		}
 		return $sth;
 	}
@@ -308,7 +331,7 @@ class NekoRow {
 		$query = $this->schema->updateQuery($this->id, $this->set_table);
 		$sth = NekoSchema::execute($this->dbh, $query);
 		if( $sth === null ){
-			$info = $dbh->errorInfo();
+			$info = $this->dbh->errorInfo();
 			throw new Exception($info[2]);
 		}
 		return $sth->rowCount();
@@ -321,7 +344,6 @@ class NekoRow {
  * - (array)search_by_sql(string $sql, array $values, NekoSchema $schema);
  * - (NekoRow)retrieve(string $id)
  * - (NekoRow)insert(array $field)
- * + (PDOStatement)execute(PDO $dbh, array $query)
  */
 class NekoTable {
 	protected $dbh;
@@ -369,7 +391,7 @@ class NekoTable {
 	}
 	public function insert($field){
 		$query = $this->schema->insertQuery($field);
-		if( NekoSchema::execute($this->dbh, $query) === false ){
+		if( NekoSchema::execute($this->dbh, $query) === null ){
 			$info = $this->dbh->errorInfo();
 			throw new Exception($info[2]);
 		}

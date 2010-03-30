@@ -4,12 +4,14 @@ require_once(dirname(__FILE__) . "/../Nekorm.php");
 
 class DoneUrlTable extends NekoTable {
 	function __construct($dbh){
-		parent::__construct(
-			$dbh,
-			NekoSchema::getInstance(
-				"done_url",
-				"id",
-				array("user_id", "url")));
+		$schema = NekoSchema::getInstance(
+			"done_url",
+			"id",
+			array("user_id", "url", "created_on", "updated_on"));
+		$schema->addOnInsertTimestamp("created_on");
+		$schema->addOnInsertTimestamp("updated_on");
+		$schema->addOnUpdateTimestamp("updated_on");
+		parent::__construct( $dbh, $schema );
 	}
 }
 
@@ -17,19 +19,21 @@ $t = new lime_test;
 $dbh = setup();
 testInstance($t, $dbh);
 testInsertAndSelectAndDelete($t, $dbh);
-testInsertAndUpdate($t, $dbh);
 testUnique($t, $dbh);
 testNotFound($t, $dbh);
+testInsertAndUpdate($t, $dbh);
 
 function setup(){
-	$forSqlite = false;
+	$forSqlite = true;
 	if($forSqlite){
 		$dbh = new PDO('sqlite::memory:');
 		$dbh->query("
 		create table done_url (
 			id integer primary key,
 			user_id integer unique,
-			url varchar(255) not null
+			url varchar(255) not null,
+			created_on datetime not null,
+			updated_on datetime not null
 		)
 		") or die($dbh->errorInfo());
 		return $dbh;
@@ -39,7 +43,9 @@ function setup(){
 		create table if not exists done_url (
 			id integer primary key auto_increment,
 			user_id integer unique,
-			url varchar(255) not null
+			url varchar(255) not null,
+			created_on datetime not null default 0,
+			updated_on datetime not null default 0
 		)
 		") or die($dbh->errorInfo());
 		$dbh->query("delete from done_url");
@@ -76,13 +82,19 @@ function testInsertAndUpdate($t, $dbh){
 	$t->ok( $obj instanceof NekoRow, "insert" );
 
 	//update
-	$obj->url = "http://yahoo.co.jp";
-	$obj->update();
+	try {
+		sleep(1);
+		$obj->url = "http://yahoo.co.jp";
+		$obj->update();
+	} catch( Exception $e ){
+		$t->fail($e);
+	}
 
 	//check
 	$other = $done_url->retrieve($obj->id);
 	$t->is( $other->url, "http://yahoo.co.jp", "update" );
 	$t->is( $other->user_id, 1, "update" );
+	$t->isnt( $other->updated_on, $other->created_on );
 
 	//cleanup
 	$other->delete();
@@ -98,7 +110,7 @@ function testUnique($t, $dbh){
 
 	//user_id is unique
 	try {
-		$obj = $done_url->insert(array(
+		$other = $done_url->insert(array(
 			"user_id"	=> 1,
 			"url"		=> "http://ecnavi.jp"
 		));

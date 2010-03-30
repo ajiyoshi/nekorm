@@ -156,7 +156,7 @@ $t->is_deeply(
 		"age"=>1000
 	)),
 	array(
-		"sQuery"=>"UPDATE user_master SET age = ?, SET name = ? WHERE id = ?",
+		"sQuery"=>"UPDATE user_master SET age = ?, name = ? WHERE id = ?",
 		"usData"=>array(1000, "s-tanno", 3)),
 	"update");
 $t->is_deeply(
@@ -166,7 +166,7 @@ $t->is_deeply(
 		"title"=>"the God"
 	)),
 	array(
-		"sQuery"=>"UPDATE user_master SET age = ?, SET name = ? WHERE id = ?",
+		"sQuery"=>"UPDATE user_master SET age = ?, name = ? WHERE id = ?",
 		"usData"=>array(1000, "s-tanno", 3)),
 	"update(余分を削除)");
 
@@ -191,3 +191,26 @@ $t->is_deeply(
 		"usData"=>array(1000, "s-tanno")),
 	"select(余分を削除)");
 
+
+$schema->addOnInsertTimestamp("created_on");
+$schema->addOnUpdateTimestamp("created_on");
+$t->is_deeply(
+	$schema->insertQuery(array(
+		"name"=>"s-tanno",
+		"age"=>1000,
+		"title"=>"the God"
+	)),
+	array(
+		"sQuery"=>"INSERT INTO user_master (age, name, created_on) values (?, ?, CURRENT_TIMESTAMP)",
+		"usData"=>array(1000, "s-tanno")),
+	"insert(created_on)");
+$t->is_deeply(
+	$schema->updateQuery(1, array(
+		"name"=>"s-tanno",
+		"age"=>1000,
+		"title"=>"the God"
+	)),
+	array(
+		"sQuery"=>"UPDATE user_master SET age = ?, name = ?, created_on = CURRENT_TIMESTAMP WHERE id = ?",
+		"usData"=>array(1000, "s-tanno", 1)),
+	"insert(余分を削除)");
