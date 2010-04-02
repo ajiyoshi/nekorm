@@ -322,7 +322,7 @@ class NekoRow {
 		$query = $this->schema->deleteQuery($this->id);
 		$sth = NekoSchema::execute($this->dbh, $query);
 		if( $sth === null ){
-			$info = $dbh->errorInfo();
+			$info = $this->dbh->errorInfo();
 			throw new Exception($info[2]);
 		}
 		return $sth->rowCount();
@@ -413,5 +413,14 @@ class NekoTable {
 			$ret = $this->insert($field);
 		}
 		return $ret;
+	}
+	public function beginTransaction(){
+		$this->dbh->beginTransaction();
+	}
+	public function commit(){
+		$this->dbh->commit();
+	}
+	public function rollBack(){
+		$this->dbh->rollBack();
 	}
 }
