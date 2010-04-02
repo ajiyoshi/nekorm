@@ -271,17 +271,12 @@ class NekoSchema {
 		);
 	}
 	public static function execute($dbh, $query){
-		if( $query===null ){
-			return null;
+		if( $query && $sth = $dbh->prepare($query['sQuery']) ){
+			if( $sth->execute($query['usData']) ){
+				return $sth;
+			}
 		}
-		$sth = $dbh->prepare($query["sQuery"]);
-		if( $sth===null ){
-			return null;
-		}
-		if( $sth->execute($query["usData"]) === false ){
-			return null;
-		}
-		return $sth;
+		return null;
 	}
 }
 
