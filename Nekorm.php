@@ -175,6 +175,24 @@ class NekoSchema {
 			"sQuery" => "DELETE FROM $sTable WHERE $sPkey = ? ",
 			"usData" => array($usId));
 	}
+	public function deleteWhereQuery($usCond){
+		$sColLs = array();
+		$usData = array();
+		$sKeys = $this->sFromUsColsList(array_keys($usCond));
+		foreach( $sKeys as $sKey ){
+			$sColLs[] = "$sKey = ?";
+			$usData[] = $usCond[$sKey];
+		}
+		if( count($sColLs)===0 ){
+			return null;
+		}
+		$sCondStmt = implode(" AND ", $sColLs);
+
+		$sTable = $this->sTable();
+		return array(
+			"sQuery" => "DELETE FROM $sTable WHERE $sCondStmt",
+			"usData" => $usData);
+	}
 	public function insertQuery($usField){
 		$sColLs = array();
 		$sPlace = array();
@@ -188,6 +206,9 @@ class NekoSchema {
 		foreach( array_diff(array_keys($this->onInsertTimestampColmn), $sKeys) as $sTs ){
 			$sColLs[] = $sTs;
 			$sPlace[] = "CURRENT_TIMESTAMP";
+		}
+		if( count($sColLs)===0 ){
+			return null;
 		}
 		$sColStmt= implode(", ", $sColLs);
 		$sPlaces = implode(", ", $sPlace);
@@ -209,6 +230,9 @@ class NekoSchema {
 		foreach( array_diff(array_keys($this->onUpdateTimestampColmn), $sKeys) as $sTs ){
 			$sSetLs[] = "$sTs = CURRENT_TIMESTAMP";
 		}
+		if( count($sSetLs)===0 ){
+			return null;
+		}
 		$usData[] = $usId;
 		$sSetStmt = implode(", ", $sSetLs);
 
@@ -227,6 +251,9 @@ class NekoSchema {
 			$sColLs[] = "$sKey = ?";
 			$usData[] = $usCond[$sKey];
 		}
+		if( count($sColLs)===0 ){
+			return null;
+		}
 		$sCondStmt = implode(" AND ", $sColLs);
 
 		$sTable	= $this->sTable();
@@ -244,6 +271,9 @@ class NekoSchema {
 		);
 	}
 	public static function execute($dbh, $query){
+		if( $query===null ){
+			return null;
+		}
 		$sth = $dbh->prepare($query["sQuery"]);
 		if( $sth->execute($query["usData"]) === false ){
 			return null;
@@ -334,7 +364,7 @@ class NekoRow {
 			$info = $this->dbh->errorInfo();
 			throw new Exception($info[2]);
 		}
-		return $sth->rowCount();
+		return $sth;
 	}
 	public function beginTransaction(){
 		$this->dbh->beginTransaction();
@@ -377,6 +407,10 @@ class NekoTable {
 		}
 		return $ret[0];
 	}
+	public function modify_by_sql($userSql, $data){
+		$query = NekoSchema::userSqlQuery($userSql, $data);
+		return NekoSchema::execute($this->dbh, $query);
+	}
 	public function search_by_sql($userSql, $data, $schema=null){
 		$query = NekoSchema::userSqlQuery($userSql, $data);
 		$sth = NekoSchema::execute($this->dbh, $query);
@@ -406,6 +440,15 @@ class NekoTable {
 		}
 		$id = $this->dbh->lastInsertId();
 		return NekoRow::insertedInstance($this->dbh, $this->schema, $id);
+	}
+	public function delete_where($cond){
+		$query = $this->schema->deleteWhereQuery($cond);
+		$sth =  NekoSchema::execute($dbh->dbh, $query);
+		if( $sth === null ){
+			$info = $this->dbh->errorInfo();
+			throw new Exception($info[2]);
+		}
+		return $sth;
 	}
 	public function find_or_create($field){
 		$ret = $this->first($field);
