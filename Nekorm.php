@@ -275,6 +275,9 @@ class NekoSchema {
 			return null;
 		}
 		$sth = $dbh->prepare($query["sQuery"]);
+		if( $sth===null ){
+			return null;
+		}
 		if( $sth->execute($query["usData"]) === false ){
 			return null;
 		}
@@ -443,7 +446,7 @@ class NekoTable {
 	}
 	public function delete_where($cond){
 		$query = $this->schema->deleteWhereQuery($cond);
-		$sth =  NekoSchema::execute($dbh->dbh, $query);
+		$sth =  NekoSchema::execute($this->dbh, $query);
 		if( $sth === null ){
 			$info = $this->dbh->errorInfo();
 			throw new Exception($info[2]);
