@@ -16,40 +16,54 @@ class DoneUrlTable extends NekoTable {
 }
 
 $t = new lime_test;
-$dbh = setup();
-testInstance($t, $dbh);
-testInsertAndSelectAndDelete($t, $dbh);
-testUnique($t, $dbh);
-testNotFound($t, $dbh);
-testInsertAndUpdate($t, $dbh);
+if( $dbh = connectSqlite() ){
+	testInstance($t, $dbh);
+	testInsertAndSelectAndDelete($t, $dbh);
+	testUnique($t, $dbh);
+	testNotFound($t, $dbh);
+	testInsertAndUpdate($t, $dbh);
+}
+if( $dbh = connectMysql() ){
+	testInstance($t, $dbh);
+	testInsertAndSelectAndDelete($t, $dbh);
+	testUnique($t, $dbh);
+	testNotFound($t, $dbh);
+	testInsertAndUpdate($t, $dbh);
+}
 
-function setup(){
-	$forSqlite = true;
-	if($forSqlite){
+function connectSqlite(){
+	try {
 		$dbh = new PDO('sqlite::memory:');
 		$dbh->query("
-		create table done_url (
-			id integer primary key,
-			user_id integer unique,
-			url varchar(255) not null,
-			created_on datetime not null,
-			updated_on datetime not null
-		)
-		") or die($dbh->errorInfo());
+			create table done_url (
+				id integer primary key,
+				user_id integer unique,
+				url varchar(255) not null,
+				created_on datetime not null,
+				updated_on datetime not null
+			)
+			");
 		return $dbh;
-	}else{
+	} catch(Exception $e) {
+		return null;
+	}
+}
+function connectMysql(){
+	try {
 		$dbh = new PDO('mysql:host=localhost;dbname=test', 'test');
 		$dbh->query("
-		create table if not exists done_url (
-			id integer primary key auto_increment,
-			user_id integer unique,
-			url varchar(255) not null,
-			created_on datetime not null default 0,
-			updated_on datetime not null default 0
-		)
-		") or die($dbh->errorInfo());
+			create table if not exists done_url (
+				id integer primary key auto_increment,
+				user_id integer unique,
+				url varchar(255) not null,
+				created_on datetime not null default 0,
+				updated_on datetime not null default 0
+			)
+			");
 		$dbh->query("delete from done_url");
 		return $dbh;
+	} catch(Exception $e) {
+		return null;
 	}
 }
 function testInstance($t, $dbh){
