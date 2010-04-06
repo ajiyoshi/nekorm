@@ -441,7 +441,7 @@ class NekoTable {
 		$query = $this->schema->selectAllQuery();
 		$sth = NekoSchema::execute($this->dbh, $query);
 		$ret = array();
-		if( $rec = $sth->fetch(PDO::FETCH_ASSOC) ){
+		while( $rec = $sth->fetch(PDO::FETCH_ASSOC) ){
 			$ret[] = NekoRow::selectedInstance($this->dbh, $this->schema, $rec);
 		}
 		return $ret;
