@@ -302,3 +302,10 @@ function testDeleteWhereQuery($t){
 			'sQuery'=>'DELETE FROM user_master WHERE age = ? AND name = ?',
 			'usData'=>array(1000, "' OR ''='")));
 }
+function testSelectAllQuery($t){
+	$schema = NekoSchema::getInstance(
+		"user_master",
+		"id",
+		array("name", "age", "created_on"));
+	$t->is($schema->selectAllQuery(), 'SELECT * FROM user_master', 'select all');
+}

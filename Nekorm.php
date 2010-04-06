@@ -262,6 +262,13 @@ class NekoSchema {
 			"usData" => $usData
 		);
 	}
+	public function selectAllQuery(){
+		$sTable	= $this->sTable();
+		return array(
+			"sQuery" => "SELECT * FROM $sTable",
+			"usData" => array()
+		);
+	}
 	public static function userSqlQuery($usUserSql, $usData){
 		//XXX sQuery に $usUserSql が代入されている。
 		//ユーザが書いた任意のSQLを受けるためのメソッドなので仕方ない。
@@ -429,6 +436,15 @@ class NekoTable {
 			return NekoRow::selectedInstance($this->dbh, $this->schema, $rec);
 		}
 		return null;
+	}
+	public function all(){
+		$query = $this->schema->selectAllQuery();
+		$sth = NekoSchema::execute($this->dbh, $query);
+		$ret = array();
+		if( $rec = $sth->fetch(PDO::FETCH_ASSOC) ){
+			$ret[] = NekoRow::selectedInstance($this->dbh, $this->schema, $rec);
+		}
+		return $ret;
 	}
 	public function insert($field){
 		$query = $this->schema->insertQuery($field);
